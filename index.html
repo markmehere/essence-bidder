@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bridge Example</title>
+  <style>
+    div {
+      margin: 30px 0;
+      font-family: monospace;
+      font-size: 16pt;
+    }
+
+    div.row, div.cell {
+      margin: 0;
+    }
+
+    div.cell:first-child {
+      width: 20%;
+    }
+    
+    div.cell {
+      display: inline-block;
+      width: 10%;
+    }
+  </style>
+</head>
+<body>
+  <div id="board"></div>
+  <div id="bidding"></div>
+  <div id="playing">Computing the opening play...</div>
+  <script type="text/javascript">
+    const prettySymbols = (str) => str.replace(/S/g, '&spades;').replace(/C/g, '&clubs;')
+      .replace(/H/g, '<span style="color: red">&hearts;</span>').replace(/D/g, '<span style="color: red">&diams;</span>');
+    const allSuits = [ 'S', 'H', 'D', 'C' ];
+    const allNominations = [ 'A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2' ];
+    const allCardsString = allSuits.map(suit => {
+      return allNominations.map(nom => nom + suit);
+    }).join();
+    const allCards = allCardsString.split(',');
+    const cardSort = (a, b) => {
+      return allCards.indexOf(a) - allCards.indexOf(b);
+    };
+    const preShuffleCards = allCardsString.split(',');
+    const shuffledCards = [];
+    for (let i = 0; preShuffleCards.length > 0; i++) {
+      shuffledCards.push(preShuffleCards.splice(Math.random() * preShuffleCards.length, 1)[0]);
+    }
+    const westCards = shuffledCards.splice(0, 13);
+    const northCards = shuffledCards.splice(0, 13);
+    const eastCards = shuffledCards.splice(0, 13);
+    const southCards = shuffledCards.splice(0, 13);
+    westCards.sort(cardSort);
+    northCards.sort(cardSort);
+    eastCards.sort(cardSort);
+    southCards.sort(cardSort);
+    let dealtHands = {
+      north: northCards,
+      east: eastCards,
+      south: southCards,
+      west: westCards,
+      nextToPlay: 'N'
+    };
+    document.getElementById('board').innerHTML = prettySymbols(JSON.stringify(dealtHands, null)
+      .replace(/[\}]|(\],)/g, '<br />').replace(/[\{\[",]/g, ' '));
+    const bidWorker = new Worker('./bin/essence-bidding.js');
+    let biddingPromise = Promise.resolve({
+      north: [],
+      west: [],
+      south: [],
+      east: [],
+      highestBid: '',
+      passCount: 0
+    });
+    const runBid = (result) => {
+      return new Promise((resolve) => {
+        if ((result.highestBid && result.passCount < 3) || result.passCount < 4) {
+            switch (dealtHands.nextToPlay) {
+              case 'N':
+                console.log(dealtHands.north);
+                break;
+              case 'E':
+                console.log(dealtHands.east);
+                break;
+              case 'S':
+                console.log(dealtHands.south);
+                break;
+              case 'W':
+                console.log(dealtHands.west);
+                break;
+            }
+          bidWorker.postMessage({ dealtHands, contract: result });
+          bidWorker.onmessage = e => {
+            console.log(e.data);
+            if (e.data === '-') result.passCount++;
+            else result.passCount = 0;
+            if (e.data !== '-' && e.data !== 'D' && e.data !== 'R') result.highestBid = e.data;
+            switch (dealtHands.nextToPlay) {
+              case 'N':
+                result.north = result.north.concat(e.data);
+                dealtHands.nextToPlay = 'E';
+                break;
+              case 'E':
+                result.east = result.east.concat(e.data);
+                dealtHands.nextToPlay = 'S';
+                break;
+              case 'S':
+                result.south = result.south.concat(e.data);
+                dealtHands.nextToPlay = 'W';
+                break;
+              case 'W':
+                result.west = result.west.concat(e.data);
+                dealtHands.nextToPlay = 'N';
+                break;
+            }
+            resolve(result);
+          };
+        }
+        else {
+          resolve(result);
+        }
+      });
+    }
+
+    // Don't know how long - so we'll just run it a lot
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+    biddingPromise = biddingPromise.then(runBid);
+
+    biddingPromise.then(result => {
+      let html = `<div class=\"row\">
+          <div class=\"cell\">north:</div>${result.north.map(x => `<div class=\"cell\">${prettySymbols(x)}</div>`).join('')}
+        </div><div class=\"row\">
+          <div class=\"cell\">east:</div>${result.east.map(x => `<div class=\"cell\">${prettySymbols(x)}</div>`).join('')}
+        </div><div class=\"row\">
+          <div class=\"cell\">south:</div>${result.south.map(x => `<div class=\"cell\">${prettySymbols(x)}</div>`).join('')}
+        </div><div class=\"row\">
+          <div class=\"cell\">west:</div>${result.west.map(x => `<div class=\"cell\">${prettySymbols(x)}</div>`).join('')}
+        </div>`;
+      document.getElementById('bidding').innerHTML = html;
+    });
+  </script>
+</body>
+</html>
