@@ -102,6 +102,11 @@ export function isFlawed(suit: string, sd: StandardSuitDictionary) {
 }
 
 export function isValidBid(bid: string, contract: ApiContract) {
+  if (!bid) return false;
+  if (!/^[-|R|D]|([1-7]([C|H|D|S]|NT))$/.test(bid)) {
+    console.warn(`Unexpected bid: ${bid}`);
+    return false;
+  }
   if (bid === 'D' && (!contract.highestBid || contract.doubled || contract.redoubled)) return false;
   if (bid === 'R' && (!contract.highestBid || !contract.doubled)) return false;
   if (bid === 'D' || bid === 'R') return true;

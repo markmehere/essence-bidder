@@ -1,6 +1,6 @@
 {
   "name": "essence-bidder",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A simple but effective bidding agent for bridge",
   "main": "index.js",
   "scripts": {

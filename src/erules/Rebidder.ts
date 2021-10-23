@@ -8,19 +8,24 @@ export function Rebidder(cards: string[], contract: ApiContract, sd: StandardSui
   const opening = bidStack.bids[bidStack.bids.length - 4];
   const hcp = getHighCardPoints(cards);
  
-  // Analysis shows us major can often be increased in the rebid - alternately maybe we should have made our rsponse bid more aggressive
-  if ((opening[1] === 'S' && response[1] === 'S') || (opening[1] === 'H' && response[1] === 'H')) {
-    return `${parseInt(response[0], 10) + 1}${response[1]}`;
-  }
-  
-  // If we have a lot of high card points, let's rebid to our opening suit
-  if (opening[1] !== response[1] && hcp > 13) {
-    return isValidBid(`${parseInt(response[0], 10)}${opening[1]}`, contract) ? `${parseInt(response[0], 10)}${opening[1]}` : `${parseInt(response[0], 10) + 1}${opening[1]}` ;
-  }
+  // The following apply only to suited opening - we used to sometimes return 2N - which isn't a valid bid
+  if (opening.length === 2) {
 
-  // If we have a lot at least three cards in their suit, let's rebid to their preferred suit (maybe if the overcall is much greater it'll fall through)
-  if (opening[1] !== response[1] && sd[response[1]] && sd[response[1]].count >= 3 && bidStack.bids[bidStack.bids.length - 1].length === 2) {
-    return `${parseInt(response[0], 10) + 1}${opening[1]}`;
+    // Analysis shows us major can often be increased in the rebid - alternately maybe we should have made our rsponse bid more aggressive
+    if ((opening[1] === 'S' && response[1] === 'S') || (opening[1] === 'H' && response[1] === 'H')) {
+      return `${parseInt(response[0], 10) + 1}${response[1]}`;
+    }
+    
+    // If we have a lot of high card points, let's rebid to our opening suit
+    if (opening[1] !== response[1] && hcp > 13) {
+      return isValidBid(`${parseInt(response[0], 10)}${opening[1]}`, contract) ? `${parseInt(response[0], 10)}${opening[1]}` : `${parseInt(response[0], 10) + 1}${opening[1]}` ;
+    }
+
+    // If we have a lot at least three cards in their suit, let's rebid to their preferred suit (maybe if the overcall is much greater it'll fall through)
+    if (opening[1] !== response[1] && sd[response[1]] && sd[response[1]].count >= 3 && bidStack.bids[bidStack.bids.length - 1].length === 2) {
+      return `${parseInt(response[0], 10) + 1}${opening[1]}`;
+    }
+
   }
 
   // In some circumstances, we'll head for 2NT
